@@ -8,6 +8,7 @@ let interval = 0;
 let gameInterval = 0;
 let stars = 3;
 const maxCards = 16;
+let animationRunning = false;
 
 /**
  * Starts the game as soon as the user loads the page
@@ -30,6 +31,8 @@ function initGame() {
     interval = 0;
     stars = 3;
 
+    animationRunning = false;
+
     resetOpenCards();
     resetMoves();
     resetStars();
@@ -51,7 +54,10 @@ function resetOpenCards() {
  * Updates the UI each second to show the total time of gameplay in seconds
  */
 function startTimeCount() {
-    gameInterval = setInterval(function () { interval++; document.querySelector(".seconds").textContent = interval; }, 1000);
+    gameInterval = setInterval(function () { 
+        interval++; 
+        document.querySelector(".seconds").textContent = interval; 
+    }, 1000);
 }
 
 /**
@@ -103,9 +109,15 @@ function shuffle(array) {
  *    + if all cards have matched, display a message with the final score (put this functionality in another function that you call from this one)
  */
 function clickListener(e) {
-    console.log(e.target);
+    if (animationRunning){
+        return;
+    }
+    if (openCards.includes(this)){
+        return;
+    }
     openCard(e.target);
     addCardToList(e.target);
+
 }
 
 function openCard(element) {
@@ -120,6 +132,8 @@ function addCardToList(element) {
     openCards.push(element);
     if (openCards.length == 2) {
         if (openCards[0].isEqualNode(openCards[1])) {
+            openCards[0].removeEventListener("animationstart", animationStartCallback);
+            openCards[1].removeEventListener("animationstart", animationStartCallback);
             openCards[0].removeEventListener("animationend", animationEndCallback);
             openCards[1].removeEventListener("animationend", animationEndCallback);
             lockCards(openCards[0], openCards[1]);
@@ -134,6 +148,7 @@ function addCardToList(element) {
         } else {
             incrementMoves();
             rateStar();
+            openCards[0].addEventListener("animationstart", animationStartCallback);
             openCards[0].addEventListener("animationend", animationEndCallback);
             openCards[0].setAttribute("class", "card error");
             openCards[1].setAttribute("class", "card error");
@@ -146,8 +161,15 @@ function isFinished() {
 }
 
 function animationEndCallback() {
+    console.log("End");
+    animationRunning = false;
     resetCards(openCards);
     resetOpenCards();
+}
+
+function animationStartCallback(){
+    console.log("Start");
+    animationRunning = true;
 }
 
 
@@ -158,12 +180,15 @@ function restartGame() {
     cardList.forEach((value) => {
         deck.removeChild(value);
     });
+    clearInterval(gameInterval);
     initGame();
 }
 
 function lockCards(cardOne, cardTwo) {
     cardOne.setAttribute("class", "card match");
     cardTwo.setAttribute("class", "card match");
+    cardOne.removeEventListener("click", clickListener);
+    cardTwo.removeEventListener("click", clickListener);
     incrementMoves();
     rateStar();
     resetOpenCards();
